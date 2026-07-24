@@ -11,6 +11,8 @@ pub fn create_openai_client(config: &AiConfig) -> Result<openai::Client> {
         .api_key
         .clone()
         .or_else(|| std::env::var("OPENAI_API_KEY").ok())
+        .or_else(|| std::env::var("DEEPSEEK_API_KEY").ok())
+        .or_else(|| AiConfig::load_keyring_api_key(&config.provider).ok())
         .ok_or_else(|| AiError::MissingApiKey(config.provider.clone()))?;
 
     if config.provider.to_lowercase() == "deepseek" {

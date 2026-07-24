@@ -22,6 +22,9 @@ pub enum AiError {
 
     #[error("Invalid request: {0}")]
     InvalidRequest(String),
+
+    #[error("Keyring storage error: {0}")]
+    KeyringError(String),
 }
 
 pub type Result<T> = std::result::Result<T, AiError>;

@@ -65,7 +65,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set"),
     );
 
-    // 2. Or initialize with OpenAI default
+    // 2. Or initialize via Builder with OS keyring auto-resolution
+    let config_keyring = AiConfig::builder()
+        .provider("deepseek")
+        .model("deepseek-v4-pro")
+        .from_keyring()
+        .build();
+
+    // 3. Or initialize with OpenAI default
     // let config = AiConfig::new("openai", "gpt-4o-mini", "key");
 
     let engine = AiEngine::new(config);

@@ -53,3 +53,18 @@ pub struct AuditResponse {
     pub findings: Vec<AuditFinding>,
     pub summary: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegressionVerificationRequest {
+    pub prompt: String,
+    pub url: String,
+    pub title: String,
+    pub html_snapshot: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegressionVerificationResponse {
+    pub pass: bool,
+    pub reasoning: String,
+    pub suggestions: Vec<String>,
+}

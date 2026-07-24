@@ -4,13 +4,15 @@ pub mod chat;
 pub mod config;
 pub mod error;
 pub mod providers;
+pub mod regression;
 pub mod types;
 
 pub use audit::AuditEngine;
 pub use auto_mark::InvokerEngine;
 pub use chat::ChatEngine;
-pub use config::AiConfig;
+pub use config::{AiConfig, AiConfigBuilder};
 pub use error::{AiError, Result};
+pub use regression::RegressionEngine;
 pub use types::*;
 
 use tokio::sync::mpsc;
@@ -20,6 +22,7 @@ pub struct AiEngine {
     chat_engine: ChatEngine,
     invoker_engine: InvokerEngine,
     audit_engine: AuditEngine,
+    regression_engine: RegressionEngine,
 }
 
 impl AiEngine {
@@ -27,12 +30,14 @@ impl AiEngine {
         let chat_engine = ChatEngine::new(config.clone());
         let invoker_engine = InvokerEngine::new(config.clone());
         let audit_engine = AuditEngine::new(config.clone());
+        let regression_engine = RegressionEngine::new(config.clone());
 
         Self {
             config,
             chat_engine,
             invoker_engine,
             audit_engine,
+            regression_engine,
         }
     }
 
@@ -61,6 +66,13 @@ impl AiEngine {
     pub async fn audit_traffic(&self, request: AuditRequest) -> Result<AuditResponse> {
         self.audit_engine.audit_traffic(request).await
     }
+
+    pub async fn verify_regression(
+        &self,
+        request: RegressionVerificationRequest,
+    ) -> Result<RegressionVerificationResponse> {
+        self.regression_engine.verify(request).await
+    }
 }
 
 #[cfg(test)]
@@ -88,6 +100,24 @@ mod tests {
         let config = AiConfig::deepseek_v4_pro("test-key");
         assert_eq!(config.provider, "deepseek");
         assert_eq!(config.model, "deepseek-v4-pro");
+        assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
+    }
+
+    #[test]
+    fn test_ai_config_builder() {
+        let config = AiConfig::builder()
+            .provider("deepseek")
+            .model("deepseek-v4-pro")
+            .api_key("sk-builder-key-123")
+            .temperature(0.2)
+            .max_tokens(2048)
+            .build();
+
+        assert_eq!(config.provider, "deepseek");
+        assert_eq!(config.model, "deepseek-v4-pro");
+        assert_eq!(config.api_key, Some("sk-builder-key-123".to_string()));
+        assert_eq!(config.temperature, Some(0.2));
+        assert_eq!(config.max_tokens, Some(2048));
         assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
     }
 }
