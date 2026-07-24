@@ -34,4 +34,18 @@ impl AiConfig {
             ..Default::default()
         }
     }
+
+    pub fn deepseek(model: impl Into<String>, api_key: impl Into<String>) -> Self {
+        Self {
+            provider: "deepseek".to_string(),
+            model: model.into(),
+            api_key: Some(api_key.into()),
+            base_url: Some("https://api.deepseek.com/v1".to_string()),
+            ..Default::default()
+        }
+    }
+
+    pub fn deepseek_v4_pro(api_key: impl Into<String>) -> Self {
+        Self::deepseek("deepseek-v4-pro", api_key)
+    }
 }

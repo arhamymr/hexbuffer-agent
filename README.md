@@ -11,7 +11,7 @@
 ## 🌟 Key Features
 
 - **🤖 Security Chat Assistant (`ChatEngine`)**: Interactive security research assistant providing real-time vulnerability analysis, exploitation assistance, and actionable remediation guidance with full streaming response support (`tokio::sync::mpsc`).
-- **🎯 Intelligent Injection Point Marking (`InvokerEngine`)**: Analyzes raw HTTP requests to identify high-value target parameters and automatically injects payload position markers (`§parameter_value§`) for automated fuzzing and intruder attacks.
+- **🎯 Intelligent Injection Point Marking (`InvokerEngine`)**: Analyzes raw HTTP requests to identify high-value target parameters and automatically injects payload markers (`$target$`) for automated fuzzing and intruder attacks.
 - **🛡️ Automated HTTP Traffic Auditing (`AuditEngine`)**: Scans raw HTTP request/response payloads against OWASP Top 10 vulnerabilities, sensitive data exposures, and authentication flaws, outputting structured findings with severity ratings and remediation steps.
 - **⚡ Multi-Provider Support (`providers`)**: Direct integration with OpenAI (`gpt-4o`, `gpt-4o-mini`), DeepSeek (`https://api.deepseek.com/v1`), and custom OpenAI-compatible API endpoints.
 
@@ -60,17 +60,33 @@ use hexbuffer_ai::{AiConfig, AiEngine};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize config (Default: OpenAI gpt-4o-mini)
-    let config = AiConfig::new(
-        "openai",
-        "gpt-4o-mini",
-        std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set"),
+    // 1. Initialize with DeepSeek V4 Pro
+    let config = AiConfig::deepseek_v4_pro(
+        std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set"),
     );
+
+    // 2. Or initialize with OpenAI default
+    // let config = AiConfig::new("openai", "gpt-4o-mini", "key");
 
     let engine = AiEngine::new(config);
     println!("Engine ready for provider: {}", engine.config().provider);
     Ok(())
 }
+```
+
+---
+
+## 🧪 Running Examples
+
+You can run the examples in the [`examples/`](file:///Users/arham/Desktop/project/hexbuffer-ai/examples) folder directly via `cargo`:
+
+```bash
+# Suggest payload markers ($target$) on HTTP requests
+export DEEPSEEK_API_KEY="your_api_key"
+cargo run --example suggest_markers
+
+# Perform HTTP traffic vulnerability audit with DeepSeek V4 Pro
+cargo run --example deepseek_audit
 ```
 
 ---
@@ -117,7 +133,7 @@ while let Some(chunk) = rx.recv().await {
 
 ### 2. Payload Marker Suggestion (`InvokerEngine`)
 
-Automatically parse raw HTTP requests and insert payload markers (`§value§`) for security fuzzing.
+Automatically parse raw HTTP requests and insert payload markers (`$target$`) for security fuzzing.
 
 ```rust
 use hexbuffer_ai::InvokerMarkerSuggestionRequest;

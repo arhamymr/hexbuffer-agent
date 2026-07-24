@@ -21,7 +21,7 @@ impl InvokerEngine {
         let agent = client
             .agent(&self.config.model)
             .preamble(
-                "You are an expert web security payload marker insertion tool for security scanners. Analyze the raw HTTP request and insert marker symbols (§parameter_value§) around injection points for security testing.",
+                "You are an expert web security payload marker insertion tool for security scanners. Analyze the raw HTTP request and insert marker symbols ($target$) around injection points for security testing.",
             )
             .build();
 

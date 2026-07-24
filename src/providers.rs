@@ -13,14 +13,14 @@ pub fn create_openai_client(config: &AiConfig) -> Result<openai::Client> {
         .or_else(|| std::env::var("OPENAI_API_KEY").ok())
         .ok_or_else(|| AiError::MissingApiKey(config.provider.clone()))?;
 
-    if let Some(ref base_url) = config.base_url {
-        Ok(openai::Client::from_url(&api_key, base_url))
-    } else if config.provider.to_lowercase() == "deepseek" {
+    if config.provider.to_lowercase() == "deepseek" {
         let base_url = config
             .base_url
             .clone()
             .unwrap_or_else(|| "https://api.deepseek.com/v1".to_string());
         Ok(openai::Client::from_url(&api_key, &base_url))
+    } else if let Some(ref base_url) = config.base_url {
+        Ok(openai::Client::from_url(&api_key, base_url))
     } else {
         Ok(openai::Client::new(&api_key))
     }

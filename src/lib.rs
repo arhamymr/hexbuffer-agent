@@ -82,4 +82,12 @@ mod tests {
         assert_eq!(engine.config().provider, "openai");
         assert_eq!(engine.config().model, "gpt-4o");
     }
+
+    #[test]
+    fn test_deepseek_v4_pro_config() {
+        let config = AiConfig::deepseek_v4_pro("test-key");
+        assert_eq!(config.provider, "deepseek");
+        assert_eq!(config.model, "deepseek-v4-pro");
+        assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
+    }
 }
