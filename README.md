@@ -12,7 +12,6 @@
 
 - **🤖 Security Chat Assistant (`ChatEngine`)**: Interactive security research assistant providing real-time vulnerability analysis, exploitation assistance, and actionable remediation guidance with full streaming response support (`tokio::sync::mpsc`).
 - **🎯 Intelligent Injection Point Marking (`InvokerEngine`)**: Analyzes raw HTTP requests to identify high-value target parameters and automatically injects payload position markers (`§parameter_value§`) for automated fuzzing and intruder attacks.
-- **🧪 Test Matrix Generation (`PixelEngine`)**: Automatically creates structured web testing matrices, edge-case payload combinations, and step-by-step verification flows for web application features.
 - **🛡️ Automated HTTP Traffic Auditing (`AuditEngine`)**: Scans raw HTTP request/response payloads against OWASP Top 10 vulnerabilities, sensitive data exposures, and authentication flaws, outputting structured findings with severity ratings and remediation steps.
 - **⚡ Multi-Provider Support (`providers`)**: Direct integration with OpenAI (`gpt-4o`, `gpt-4o-mini`), DeepSeek (`https://api.deepseek.com/v1`), and custom OpenAI-compatible API endpoints.
 
@@ -31,7 +30,6 @@ hexbuffer-ai/
     ├── error.rs        # Custom error types (AiError) and Result alias
     ├── chat.rs         # Interactive ChatEngine & streaming implementation
     ├── auto_mark.rs    # InvokerEngine for HTTP request payload marking
-    ├── pixel.rs        # PixelEngine for systematic test matrix generation
     └── audit.rs        # AuditEngine for OWASP & HTTP traffic vulnerability analysis
 ```
 
@@ -145,28 +143,7 @@ println!("Explanation: {}", response.explanation);
 
 ---
 
-### 3. Test Matrix Generation (`PixelEngine`)
-
-Generate systematic test matrices and verification steps for automated web testing.
-
-```rust
-use hexbuffer_ai::PixelGenerationRequest;
-
-let request = PixelGenerationRequest {
-    prompt: "Generate test cases for JWT authentication bypasses".to_string(),
-    target_url: Some("https://example.com/api/v1/auth".to_string()),
-    context: Some("Uses HS256 algorithm with RS256 fallback".to_string()),
-};
-
-let response = engine.generate_pixel_matrix(request).await?;
-
-println!("Test Steps:\n{:#?}", response.steps);
-println!("Matrix JSON Payload:\n{}", response.matrix_json);
-```
-
----
-
-### 4. HTTP Traffic Auditing (`AuditEngine`)
+### 3. HTTP Traffic Auditing (`AuditEngine`)
 
 Analyze raw HTTP traffic for vulnerabilities, returning structured severity findings and remediation instructions.
 

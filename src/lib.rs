@@ -3,7 +3,6 @@ pub mod auto_mark;
 pub mod chat;
 pub mod config;
 pub mod error;
-pub mod pixel;
 pub mod providers;
 pub mod types;
 
@@ -12,7 +11,6 @@ pub use auto_mark::InvokerEngine;
 pub use chat::ChatEngine;
 pub use config::AiConfig;
 pub use error::{AiError, Result};
-pub use pixel::PixelEngine;
 pub use types::*;
 
 use tokio::sync::mpsc;
@@ -21,7 +19,6 @@ pub struct AiEngine {
     config: AiConfig,
     chat_engine: ChatEngine,
     invoker_engine: InvokerEngine,
-    pixel_engine: PixelEngine,
     audit_engine: AuditEngine,
 }
 
@@ -29,14 +26,12 @@ impl AiEngine {
     pub fn new(config: AiConfig) -> Self {
         let chat_engine = ChatEngine::new(config.clone());
         let invoker_engine = InvokerEngine::new(config.clone());
-        let pixel_engine = PixelEngine::new(config.clone());
         let audit_engine = AuditEngine::new(config.clone());
 
         Self {
             config,
             chat_engine,
             invoker_engine,
-            pixel_engine,
             audit_engine,
         }
     }
@@ -61,13 +56,6 @@ impl AiEngine {
         request: InvokerMarkerSuggestionRequest,
     ) -> Result<InvokerMarkerSuggestionResponse> {
         self.invoker_engine.suggest_markers(request).await
-    }
-
-    pub async fn generate_pixel_matrix(
-        &self,
-        request: PixelGenerationRequest,
-    ) -> Result<PixelGenerationResponse> {
-        self.pixel_engine.generate_pixel_matrix(request).await
     }
 
     pub async fn audit_traffic(&self, request: AuditRequest) -> Result<AuditResponse> {

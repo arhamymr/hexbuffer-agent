@@ -34,19 +34,6 @@ pub struct InvokerMarkerSuggestionResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PixelGenerationRequest {
-    pub prompt: String,
-    pub target_url: Option<String>,
-    pub context: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PixelGenerationResponse {
-    pub matrix_json: String,
-    pub steps: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditRequest {
     pub request_raw: String,
     pub response_raw: Option<String>,
