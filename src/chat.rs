@@ -1,6 +1,11 @@
 use crate::config::AiConfig;
 use crate::error::{AiError, Result};
 use crate::providers::create_openai_client;
+use crate::tools::{
+    CreateCollectionTool, CreateEndpointTool, CreateFolderTool, RunTerminalCommandTool,
+    SendToRepeaterTool, StartInvokerAttackTool, ToggleInterceptTool, TriggerScanTool,
+    WriteDocumentTool,
+};
 use crate::types::{AiChatChunk, AiChatRequest};
 use rig::completion::Prompt;
 use tokio::sync::mpsc;
@@ -16,12 +21,11 @@ impl ChatEngine {
 
     pub async fn send_chat(&self, request: AiChatRequest) -> Result<String> {
         let client = create_openai_client(&self.config)?;
-        let agent = client
+        let builder = client
             .agent(&self.config.model)
             .preamble(
-                "You are hexbuffer AI, an advanced security research & web penetration testing assistant embedded inside apprecon. Provide concise, expert, and actionable security insights."
-            )
-            .build();
+                "You are hexbuffer AI, an advanced security research & web penetration testing assistant embedded inside apprecon. Provide concise, expert, and actionable security insights. Use the provided tools whenever appropriate to assist the user with application functionality."
+            );
 
         let mut full_prompt = String::new();
         if let Some(ref context) = request.context_summary {
@@ -33,10 +37,32 @@ impl ChatEngine {
         }
         full_prompt.push_str(&format!("user: {}\n", request.prompt));
 
-        let response = agent
-            .prompt(&full_prompt)
-            .await
-            .map_err(|e| AiError::CompletionError(e.to_string()))?;
+        let enable_tools = request.enable_tools.unwrap_or(true);
+        let response = if enable_tools {
+            let agent = builder
+                .tool(SendToRepeaterTool)
+                .tool(CreateCollectionTool)
+                .tool(CreateFolderTool)
+                .tool(CreateEndpointTool)
+                .tool(StartInvokerAttackTool)
+                .tool(ToggleInterceptTool)
+                .tool(TriggerScanTool)
+                .tool(RunTerminalCommandTool)
+                .tool(WriteDocumentTool)
+                .build();
+
+            agent
+                .prompt(&full_prompt)
+                .await
+                .map_err(|e| AiError::CompletionError(e.to_string()))?
+        } else {
+            let agent = builder.build();
+
+            agent
+                .prompt(&full_prompt)
+                .await
+                .map_err(|e| AiError::CompletionError(e.to_string()))?
+        };
 
         Ok(response)
     }

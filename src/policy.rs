@@ -10,6 +10,9 @@ impl SecurityApprovalPolicy {
     pub fn default_policy() -> Self {
         let mut auto_approve = HashSet::new();
         auto_approve.insert("send_to_repeater");
+        auto_approve.insert("create_collection");
+        auto_approve.insert("create_folder");
+        auto_approve.insert("create_endpoint");
         auto_approve.insert("write_document");
         auto_approve.insert("trigger_scan");
         Self { auto_approve }
