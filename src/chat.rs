@@ -21,11 +21,18 @@ impl ChatEngine {
 
     pub async fn send_chat(&self, request: AiChatRequest) -> Result<String> {
         let client = create_openai_client(&self.config)?;
-        let builder = client
+        let mut builder = client
             .agent(&self.config.model)
             .preamble(
                 "You are hexbuffer AI, an advanced security research & web penetration testing assistant embedded inside apprecon. Provide concise, expert, and actionable security insights. Use the provided tools whenever appropriate to assist the user with application functionality."
             );
+
+        if let Some(temp) = self.config.temperature {
+            builder = builder.temperature(temp);
+        }
+        if let Some(tokens) = self.config.max_tokens {
+            builder = builder.max_tokens(tokens);
+        }
 
         let mut full_prompt = String::new();
         if let Some(ref context) = request.context_summary {
