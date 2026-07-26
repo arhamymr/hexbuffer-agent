@@ -7,11 +7,39 @@ pub struct ChatMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppToolDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppToolCall {
+    pub id: String,
+    pub name: String,
+    pub arguments: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppToolResult {
+    pub tool_call_id: String,
+    pub output: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiChatRequest {
     pub prompt: String,
     pub session_id: Option<String>,
     pub history: Vec<ChatMessage>,
     pub context_summary: Option<String>,
+    pub enable_tools: Option<bool>,
+    pub tools: Option<Vec<AppToolDefinition>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiChatResponse {
+    pub text: Option<String>,
+    pub tool_calls: Option<Vec<AppToolCall>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

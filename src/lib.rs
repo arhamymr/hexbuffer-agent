@@ -3,8 +3,10 @@ pub mod auto_mark;
 pub mod chat;
 pub mod config;
 pub mod error;
+pub mod policy;
 pub mod providers;
 pub mod regression;
+pub mod tools;
 pub mod types;
 
 pub use audit::AuditEngine;
@@ -12,7 +14,12 @@ pub use auto_mark::InvokerEngine;
 pub use chat::ChatEngine;
 pub use config::{AiConfig, AiConfigBuilder};
 pub use error::{AiError, Result};
+pub use policy::SecurityApprovalPolicy;
 pub use regression::RegressionEngine;
+pub use tools::{
+    RunTerminalCommandTool, SendToRepeaterTool, StartInvokerAttackTool, ToggleInterceptTool,
+    TriggerScanTool, WriteDocumentTool,
+};
 pub use types::*;
 
 use tokio::sync::mpsc;
@@ -119,5 +126,16 @@ mod tests {
         assert_eq!(config.temperature, Some(0.2));
         assert_eq!(config.max_tokens, Some(2048));
         assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
+    }
+
+    #[test]
+    fn test_apprecon_tools_creation() {
+        let policy = SecurityApprovalPolicy::default_policy();
+        assert!(policy.is_approved("send_to_repeater"));
+        assert!(policy.is_approved("write_document"));
+        assert!(policy.is_approved("trigger_scan"));
+        assert!(!policy.is_approved("start_invoker_attack"));
+        assert!(!policy.is_approved("run_terminal_command"));
+        assert!(policy.evaluate_tool_call("start_invoker_attack").is_err());
     }
 }

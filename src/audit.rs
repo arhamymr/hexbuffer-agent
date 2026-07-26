@@ -14,6 +14,9 @@ impl AuditEngine {
     }
 
     pub async fn audit_traffic(&self, request: AuditRequest) -> Result<AuditResponse> {
+        let req_str = request.request_raw;
+        let resp_str = request.response_raw.unwrap_or_default();
+
         let client = create_openai_client(&self.config)?;
         let agent = client
             .agent(&self.config.model)
@@ -22,15 +25,13 @@ impl AuditEngine {
             )
             .build();
 
-        let prompt = format!(
+        let user_prompt = format!(
             "Perform a security audit on the following HTTP traffic.\n\nRAW REQUEST:\n{}\n\nRAW RESPONSE:\n{}\n\nVulnerability Filters: {:?}\n\nReturn JSON response formatted as:\n{{\n  \"summary\": \"Brief executive summary...\",\n  \"findings\": [\n    {{\n      \"title\": \"Finding Title\",\n      \"severity\": \"High/Medium/Low/Info\",\n      \"description\": \"Detailed vulnerability description...\",\n      \"remediation\": \"Recommended fix...\"\n    }}\n  ]\n}}",
-            request.request_raw,
-            request.response_raw.as_deref().unwrap_or("N/A"),
-            request.vulnerability_types
+            req_str, resp_str, request.vulnerability_types
         );
 
         let response = agent
-            .prompt(&prompt)
+            .prompt(&user_prompt)
             .await
             .map_err(|e| AiError::CompletionError(e.to_string()))?;
 
@@ -57,7 +58,7 @@ impl AuditEngine {
         };
 
         let parsed: AuditResponse = serde_json::from_str(clean_json)
-            .map_err(|e| AiError::CompletionError(format!("Failed to parse JSON response: {} (Raw: {})", e, clean_json)))?;
+            .map_err(|e| AiError::CompletionError(format!("Failed to parse audit JSON response: {} (Raw: {})", e, clean_json)))?;
 
         Ok(parsed)
     }
