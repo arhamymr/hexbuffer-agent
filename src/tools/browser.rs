@@ -10,19 +10,13 @@ pub struct TriggerScanArgs {
     pub url: String,
 }
 
-#[derive(Serialize)]
-pub struct TriggerScanOutput {
-    pub status: String,
-    pub url: String,
-}
-
 pub struct TriggerScanTool;
 
 impl Tool for TriggerScanTool {
     const NAME: &'static str = "trigger_scan";
     type Error = AppToolError;
     type Args = TriggerScanArgs;
-    type Output = TriggerScanOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -40,9 +34,6 @@ impl Tool for TriggerScanTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(TriggerScanOutput {
-            status: "dispatched".to_string(),
-            url: args.url,
-        })
+        Ok(format!("Successfully launched browser scan for target '{}'.", args.url))
     }
 }

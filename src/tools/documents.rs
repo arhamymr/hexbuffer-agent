@@ -11,20 +11,13 @@ pub struct WriteDocumentArgs {
     pub content: String,
 }
 
-#[derive(Serialize)]
-pub struct WriteDocumentOutput {
-    pub status: String,
-    pub title: String,
-    pub content_length: usize,
-}
-
 pub struct WriteDocumentTool;
 
 impl Tool for WriteDocumentTool {
     const NAME: &'static str = "write_document";
     type Error = AppToolError;
     type Args = WriteDocumentArgs;
-    type Output = WriteDocumentOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -43,10 +36,10 @@ impl Tool for WriteDocumentTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(WriteDocumentOutput {
-            status: "dispatched".to_string(),
-            title: args.title,
-            content_length: args.content.len(),
-        })
+        Ok(format!(
+            "Successfully saved document '{}' (Content length: {} characters).",
+            args.title,
+            args.content.len()
+        ))
     }
 }

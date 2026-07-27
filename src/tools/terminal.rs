@@ -10,19 +10,13 @@ pub struct RunTerminalCommandArgs {
     pub command: String,
 }
 
-#[derive(Serialize)]
-pub struct RunTerminalCommandOutput {
-    pub status: String,
-    pub command: String,
-}
-
 pub struct RunTerminalCommandTool;
 
 impl Tool for RunTerminalCommandTool {
     const NAME: &'static str = "run_terminal_command";
     type Error = AppToolError;
     type Args = RunTerminalCommandArgs;
-    type Output = RunTerminalCommandOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -40,9 +34,6 @@ impl Tool for RunTerminalCommandTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(RunTerminalCommandOutput {
-            status: "dispatched".to_string(),
-            command: args.command,
-        })
+        Ok(format!("Successfully dispatched terminal command '{}'.", args.command))
     }
 }

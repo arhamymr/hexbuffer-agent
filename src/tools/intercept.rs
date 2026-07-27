@@ -10,19 +10,13 @@ pub struct ToggleInterceptArgs {
     pub enabled: bool,
 }
 
-#[derive(Serialize)]
-pub struct ToggleInterceptOutput {
-    pub status: String,
-    pub enabled: bool,
-}
-
 pub struct ToggleInterceptTool;
 
 impl Tool for ToggleInterceptTool {
     const NAME: &'static str = "toggle_intercept";
     type Error = AppToolError;
     type Args = ToggleInterceptArgs;
-    type Output = ToggleInterceptOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -40,9 +34,7 @@ impl Tool for ToggleInterceptTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(ToggleInterceptOutput {
-            status: "dispatched".to_string(),
-            enabled: args.enabled,
-        })
+        let state = if args.enabled { "ENABLED" } else { "DISABLED" };
+        Ok(format!("Successfully set proxy traffic interception to {}.", state))
     }
 }

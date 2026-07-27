@@ -10,19 +10,13 @@ pub struct StartInvokerAttackArgs {
     pub attack_type: Option<String>,
 }
 
-#[derive(Serialize)]
-pub struct StartInvokerAttackOutput {
-    pub status: String,
-    pub attack_type: String,
-}
-
 pub struct StartInvokerAttackTool;
 
 impl Tool for StartInvokerAttackTool {
     const NAME: &'static str = "start_invoker_attack";
     type Error = AppToolError;
     type Args = StartInvokerAttackArgs;
-    type Output = StartInvokerAttackOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -39,9 +33,7 @@ impl Tool for StartInvokerAttackTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(StartInvokerAttackOutput {
-            status: "dispatched".to_string(),
-            attack_type: args.attack_type.unwrap_or_else(|| "sniper".to_string()),
-        })
+        let attack_type = args.attack_type.unwrap_or_else(|| "sniper".to_string());
+        Ok(format!("Successfully launched Invoker attack (Type: {}).", attack_type))
     }
 }

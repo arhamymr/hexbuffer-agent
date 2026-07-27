@@ -7,18 +7,17 @@ pub mod invoker;
 pub mod repeater;
 pub mod terminal;
 
-pub use browser::{TriggerScanArgs, TriggerScanOutput, TriggerScanTool};
-pub use documents::{WriteDocumentArgs, WriteDocumentOutput, WriteDocumentTool};
-pub use intercept::{ToggleInterceptArgs, ToggleInterceptOutput, ToggleInterceptTool};
-pub use invoker::{StartInvokerAttackArgs, StartInvokerAttackOutput, StartInvokerAttackTool};
+pub use browser::{TriggerScanArgs, TriggerScanTool};
+pub use documents::{WriteDocumentArgs, WriteDocumentTool};
+pub use intercept::{ToggleInterceptArgs, ToggleInterceptTool};
+pub use invoker::{StartInvokerAttackArgs, StartInvokerAttackTool};
 pub use repeater::{
-    AppToolError, CreateCollectionArgs, CreateCollectionOutput, CreateCollectionTool,
-    CreateEndpointArgs, CreateEndpointOutput, CreateEndpointTool, CreateFolderArgs,
-    CreateFolderOutput, CreateFolderTool, SendToRepeaterArgs, SendToRepeaterOutput,
+    AppToolError, CreateCollectionArgs, CreateCollectionTool, CreateEndpointArgs,
+    CreateEndpointTool, CreateFolderArgs, CreateFolderTool, SendToRepeaterArgs,
     SendToRepeaterTool,
 };
 
-pub use terminal::{RunTerminalCommandArgs, RunTerminalCommandOutput, RunTerminalCommandTool};
+pub use terminal::{RunTerminalCommandArgs, RunTerminalCommandTool};
 
 pub type ToolCallHandler = Box<dyn Fn(&str, serde_json::Value) + Send + Sync>;
 

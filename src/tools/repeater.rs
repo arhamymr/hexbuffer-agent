@@ -15,20 +15,13 @@ pub struct SendToRepeaterArgs {
     pub target_url: Option<String>,
 }
 
-#[derive(Serialize)]
-pub struct SendToRepeaterOutput {
-    pub status: String,
-    pub raw_request: String,
-    pub target_url: Option<String>,
-}
-
 pub struct SendToRepeaterTool;
 
 impl Tool for SendToRepeaterTool {
     const NAME: &'static str = "send_to_repeater";
     type Error = AppToolError;
     type Args = SendToRepeaterArgs;
-    type Output = SendToRepeaterOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -47,11 +40,10 @@ impl Tool for SendToRepeaterTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(SendToRepeaterOutput {
-            status: "dispatched".to_string(),
-            raw_request: args.raw_request,
-            target_url: args.target_url,
-        })
+        Ok(format!(
+            "Successfully sent request to Repeater tab (Target: {}).",
+            args.target_url.as_deref().unwrap_or("unspecified")
+        ))
     }
 }
 
@@ -62,20 +54,13 @@ pub struct CreateCollectionArgs {
     pub name: String,
 }
 
-#[derive(Serialize)]
-pub struct CreateCollectionOutput {
-    pub status: String,
-    pub workspace_id: String,
-    pub name: String,
-}
-
 pub struct CreateCollectionTool;
 
 impl Tool for CreateCollectionTool {
     const NAME: &'static str = "create_collection";
     type Error = AppToolError;
     type Args = CreateCollectionArgs;
-    type Output = CreateCollectionOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -94,11 +79,10 @@ impl Tool for CreateCollectionTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(CreateCollectionOutput {
-            status: "dispatched".to_string(),
-            workspace_id: args.workspace_id,
-            name: args.name,
-        })
+        Ok(format!(
+            "Successfully created collection '{}' in workspace '{}'.",
+            args.name, args.workspace_id
+        ))
     }
 }
 
@@ -109,20 +93,13 @@ pub struct CreateFolderArgs {
     pub name: String,
 }
 
-#[derive(Serialize)]
-pub struct CreateFolderOutput {
-    pub status: String,
-    pub parent_id: String,
-    pub name: String,
-}
-
 pub struct CreateFolderTool;
 
 impl Tool for CreateFolderTool {
     const NAME: &'static str = "create_folder";
     type Error = AppToolError;
     type Args = CreateFolderArgs;
-    type Output = CreateFolderOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -141,11 +118,10 @@ impl Tool for CreateFolderTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(CreateFolderOutput {
-            status: "dispatched".to_string(),
-            parent_id: args.parent_id,
-            name: args.name,
-        })
+        Ok(format!(
+            "Successfully created folder '{}' under parent '{}'.",
+            args.name, args.parent_id
+        ))
     }
 }
 
@@ -160,20 +136,13 @@ pub struct CreateEndpointArgs {
     pub body: Option<String>,
 }
 
-#[derive(Serialize)]
-pub struct CreateEndpointOutput {
-    pub status: String,
-    pub collection_id: String,
-    pub name: String,
-}
-
 pub struct CreateEndpointTool;
 
 impl Tool for CreateEndpointTool {
     const NAME: &'static str = "create_endpoint";
     type Error = AppToolError;
     type Args = CreateEndpointArgs;
-    type Output = CreateEndpointOutput;
+    type Output = String;
 
     async fn definition(&self, _prompt: String) -> ToolDefinition {
         ToolDefinition {
@@ -196,10 +165,9 @@ impl Tool for CreateEndpointTool {
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
         dispatch_tool_call(Self::NAME, json!(args));
-        Ok(CreateEndpointOutput {
-            status: "dispatched".to_string(),
-            collection_id: args.collection_id,
-            name: args.name,
-        })
+        Ok(format!(
+            "Successfully created endpoint '{}' in collection '{}'.",
+            args.name, args.collection_id
+        ))
     }
 }
