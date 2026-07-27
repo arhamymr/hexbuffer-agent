@@ -1,10 +1,11 @@
+use super::dispatch_tool_call;
+use super::repeater::AppToolError;
 use rig::completion::ToolDefinition;
 use rig::tool::Tool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use super::repeater::AppToolError;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct TriggerScanArgs {
     pub url: String,
 }
@@ -38,6 +39,7 @@ impl Tool for TriggerScanTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(TriggerScanOutput {
             status: "dispatched".to_string(),
             url: args.url,

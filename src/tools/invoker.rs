@@ -1,10 +1,11 @@
+use super::dispatch_tool_call;
+use super::repeater::AppToolError;
 use rig::completion::ToolDefinition;
 use rig::tool::Tool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use super::repeater::AppToolError;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct StartInvokerAttackArgs {
     pub attack_type: Option<String>,
 }
@@ -37,6 +38,7 @@ impl Tool for StartInvokerAttackTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(StartInvokerAttackOutput {
             status: "dispatched".to_string(),
             attack_type: args.attack_type.unwrap_or_else(|| "sniper".to_string()),

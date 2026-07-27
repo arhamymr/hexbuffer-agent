@@ -1,3 +1,4 @@
+use crate::tools::dispatch_tool_call;
 use rig::completion::ToolDefinition;
 use rig::tool::Tool;
 use serde::{Deserialize, Serialize};
@@ -8,7 +9,7 @@ use serde_json::json;
 pub struct AppToolError(pub String);
 
 // 1. SendToRepeaterTool
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SendToRepeaterArgs {
     pub raw_request: String,
     pub target_url: Option<String>,
@@ -45,6 +46,7 @@ impl Tool for SendToRepeaterTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(SendToRepeaterOutput {
             status: "dispatched".to_string(),
             raw_request: args.raw_request,
@@ -54,7 +56,7 @@ impl Tool for SendToRepeaterTool {
 }
 
 // 2. CreateCollectionTool
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CreateCollectionArgs {
     pub workspace_id: String,
     pub name: String,
@@ -91,6 +93,7 @@ impl Tool for CreateCollectionTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(CreateCollectionOutput {
             status: "dispatched".to_string(),
             workspace_id: args.workspace_id,
@@ -100,7 +103,7 @@ impl Tool for CreateCollectionTool {
 }
 
 // 3. CreateFolderTool
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CreateFolderArgs {
     pub parent_id: String,
     pub name: String,
@@ -137,6 +140,7 @@ impl Tool for CreateFolderTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(CreateFolderOutput {
             status: "dispatched".to_string(),
             parent_id: args.parent_id,
@@ -146,7 +150,7 @@ impl Tool for CreateFolderTool {
 }
 
 // 4. CreateEndpointTool
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CreateEndpointArgs {
     pub collection_id: String,
     pub name: String,
@@ -191,6 +195,7 @@ impl Tool for CreateEndpointTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(CreateEndpointOutput {
             status: "dispatched".to_string(),
             collection_id: args.collection_id,

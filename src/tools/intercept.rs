@@ -1,10 +1,11 @@
+use super::dispatch_tool_call;
+use super::repeater::AppToolError;
 use rig::completion::ToolDefinition;
 use rig::tool::Tool;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use super::repeater::AppToolError;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ToggleInterceptArgs {
     pub enabled: bool,
 }
@@ -38,6 +39,7 @@ impl Tool for ToggleInterceptTool {
     }
 
     async fn call(&self, args: Self::Args) -> Result<Self::Output, Self::Error> {
+        dispatch_tool_call(Self::NAME, json!(args));
         Ok(ToggleInterceptOutput {
             status: "dispatched".to_string(),
             enabled: args.enabled,
