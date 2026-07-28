@@ -18,12 +18,20 @@ impl AuditEngine {
         let resp_str = request.response_raw.unwrap_or_default();
 
         let client = create_openai_client(&self.config)?;
-        let agent = client
+        let mut builder = client
             .agent(&self.config.model)
             .preamble(
                 "You are an expert web application security auditor. Analyze raw HTTP request/response payloads for OWASP Top 10 vulnerabilities, authentication bypasses, sensitive data exposure, and misconfigurations.",
-            )
-            .build();
+            );
+
+        if let Some(temp) = self.config.temperature {
+            builder = builder.temperature(temp);
+        }
+        if let Some(tokens) = self.config.max_tokens {
+            builder = builder.max_tokens(tokens);
+        }
+
+        let agent = builder.build();
 
         let user_prompt = format!(
             "Perform a security audit on the following HTTP traffic.\n\nRAW REQUEST:\n{}\n\nRAW RESPONSE:\n{}\n\nVulnerability Filters: {:?}\n\nReturn JSON response formatted as:\n{{\n  \"summary\": \"Brief executive summary...\",\n  \"findings\": [\n    {{\n      \"title\": \"Finding Title\",\n      \"severity\": \"High/Medium/Low/Info\",\n      \"description\": \"Detailed vulnerability description...\",\n      \"remediation\": \"Recommended fix...\"\n    }}\n  ]\n}}",

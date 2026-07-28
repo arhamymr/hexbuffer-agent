@@ -10,9 +10,11 @@
 
 ## 🌟 Key Features
 
-- **🤖 Security Chat Assistant (`ChatEngine`)**: Interactive security research assistant providing real-time vulnerability analysis, exploitation assistance, and actionable remediation guidance with full streaming response support (`tokio::sync::mpsc`).
+- **🤖 Security Chat Assistant (`ChatEngine`)**: Interactive security research assistant providing real-time vulnerability analysis, exploitation assistance, and actionable remediation guidance with full streaming response support (`tokio::sync::mpsc`) and structured response formatting (`chat_with_response`).
+- **🛡️ Fail-Closed Security Policy (`SecurityApprovalPolicy`)**: Granular policy management dynamically controlling which automated tools (e.g. terminal execution, scan triggering, intruder attacks) can be registered and invoked by AI agents.
 - **🎯 Intelligent Injection Point Marking (`InvokerEngine`)**: Analyzes raw HTTP requests to identify high-value target parameters and automatically injects payload markers (`$target$`) for automated fuzzing and intruder attacks.
 - **🛡️ Automated HTTP Traffic Auditing (`AuditEngine`)**: Scans raw HTTP request/response payloads against OWASP Top 10 vulnerabilities, sensitive data exposures, and authentication flaws, outputting structured findings with severity ratings and remediation steps.
+- **🧪 Automated QA Regression Verification (`RegressionEngine`)**: AI-driven evaluation comparing live page state snapshots against specification prompts.
 - **⚡ Multi-Provider Support (`providers`)**: Direct integration with OpenAI (`gpt-4o`, `gpt-4o-mini`), DeepSeek (`https://api.deepseek.com/v1`), and custom OpenAI-compatible API endpoints.
 
 ---
@@ -25,12 +27,15 @@ hexbuffer-ai/
 └── src/
     ├── lib.rs          # Main crate entrypoint & unified AiEngine orchestrator
     ├── config.rs       # Configuration struct (AiConfig) & default parameters
-    ├── types.rs        # Strongly-typed request/response data models
+    ├── policy.rs       # Fail-closed security approval policy (SecurityApprovalPolicy)
+    ├── types.rs        # Strongly-typed request/response data models & constructors
     ├── providers.rs    # OpenAI and DeepSeek client factory integration
     ├── error.rs        # Custom error types (AiError) and Result alias
     ├── chat.rs         # Interactive ChatEngine & streaming implementation
     ├── auto_mark.rs    # InvokerEngine for HTTP request payload marking
-    └── audit.rs        # AuditEngine for OWASP & HTTP traffic vulnerability analysis
+    ├── audit.rs        # AuditEngine for OWASP & HTTP traffic vulnerability analysis
+    ├── regression.rs   # RegressionEngine for visual/state verification
+    └── tools/          # Modularized tool definitions (repeater, terminal, browser, etc.)
 ```
 
 ---
@@ -51,12 +56,12 @@ serde_json = "1"
 
 ## 🚀 Quick Start
 
-### 1. Engine Initialization
+### 1. Engine Initialization & Policy Configuration
 
-Configure the AI provider, model, and authentication credentials to initialize the main `AiEngine`:
+Configure the AI provider, model, authentication credentials, and security policy to initialize `AiEngine`:
 
 ```rust
-use hexbuffer_ai::{AiConfig, AiEngine};
+use hexbuffer_ai::{AiConfig, AiEngine, SecurityApprovalPolicy};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -65,17 +70,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY must be set"),
     );
 
-    // 2. Or initialize via Builder with OS keyring auto-resolution
-    let config_keyring = AiConfig::builder()
-        .provider("deepseek")
-        .model("deepseek-v4-pro")
-        .from_keyring()
-        .build();
+    // 2. Configure fail-closed security approval policy
+    let mut policy = SecurityApprovalPolicy::default_policy();
+    policy.allow_tool("start_invoker_attack"); // Enable specific high-risk tools dynamically
 
-    // 3. Or initialize with OpenAI default
-    // let config = AiConfig::new("openai", "gpt-4o-mini", "key");
-
-    let engine = AiEngine::new(config);
+    // 3. Instantiate AiEngine with configuration and policy
+    let mut engine = AiEngine::with_policy(config, policy);
+    
+    // Optionally mutate policy at runtime
+    engine.policy_mut().allow_tool("run_terminal_command");
+    
     println!("Engine ready for provider: {}", engine.config().provider);
     Ok(())
 }
@@ -104,24 +108,26 @@ cargo run --example deepseek_audit
 
 Send prompts along with conversation history and system context summaries.
 
-#### Standard Response
+#### Standard Text Response
 ```rust
 use hexbuffer_ai::{AiChatRequest, ChatMessage};
 
-let request = AiChatRequest {
-    prompt: "How can I verify if an endpoint is vulnerable to SQL injection?".to_string(),
-    session_id: Some("session-123".to_string()),
-    history: vec![
-        ChatMessage {
-            role: "user".to_string(),
-            content: "I am auditing a target web application.".to_string(),
-        },
-    ],
-    context_summary: Some("Target endpoint: POST /api/v1/login".to_string()),
-};
+let request = AiChatRequest::new("How can I verify if an endpoint is vulnerable to SQL injection?")
+    .with_context("Target endpoint: POST /api/v1/login")
+    .with_history(vec![
+        ChatMessage::user("I am auditing a target web application."),
+    ]);
 
 let response = engine.chat(request).await?;
 println!("AI Response:\n{}", response);
+```
+
+#### Structured Response (`chat_with_response`)
+```rust
+let response = engine.chat_with_response(request).await?;
+if let Some(text) = response.text {
+    println!("AI Reply: {}", text);
+}
 ```
 
 #### Real-Time Response Streaming
@@ -152,10 +158,8 @@ Authorization: Bearer secret-token
 
 {"query": "admin", "filter": "active"}"#;
 
-let request = InvokerMarkerSuggestionRequest {
-    raw_request: raw_http.to_string(),
-    target_parameter: Some("query".to_string()),
-};
+let request = InvokerMarkerSuggestionRequest::new(raw_http)
+    .with_target_parameter("query");
 
 let response = engine.suggest_invoker_markers(request).await?;
 
@@ -173,11 +177,9 @@ Analyze raw HTTP traffic for vulnerabilities, returning structured severity find
 ```rust
 use hexbuffer_ai::AuditRequest;
 
-let request = AuditRequest {
-    request_raw: "GET /user?id=1' OR '1'='1 HTTP/1.1\nHost: target.local".to_string(),
-    response_raw: Some("HTTP/1.1 500 Internal Server Error\n\nSQL syntax error near 'OR'".to_string()),
-    vulnerability_types: vec!["SQLi".to_string(), "XSS".to_string(), "Misconfiguration".to_string()],
-};
+let request = AuditRequest::new("GET /user?id=1' OR '1'='1 HTTP/1.1\nHost: target.local")
+    .with_response("HTTP/1.1 500 Internal Server Error\n\nSQL syntax error near 'OR'")
+    .with_vulnerability_types(vec!["SQLi".to_string(), "XSS".to_string()]);
 
 let audit_result = engine.audit_traffic(request).await?;
 
@@ -224,3 +226,4 @@ match engine.chat(request).await {
 ## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
+

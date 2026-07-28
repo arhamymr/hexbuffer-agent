@@ -18,12 +18,20 @@ impl RegressionEngine {
         request: RegressionVerificationRequest,
     ) -> Result<RegressionVerificationResponse> {
         let client = create_openai_client(&self.config)?;
-        let agent = client
+        let mut builder = client
             .agent(&self.config.model)
             .preamble(
                 "You are a QA regression tester. Your job is to verify that a web page is working correctly based on a requirement prompt, page URL, title, and HTML snapshot.",
-            )
-            .build();
+            );
+
+        if let Some(temp) = self.config.temperature {
+            builder = builder.temperature(temp);
+        }
+        if let Some(tokens) = self.config.max_tokens {
+            builder = builder.max_tokens(tokens);
+        }
+
+        let agent = builder.build();
 
         let truncated_html = if request.html_snapshot.len() > 30000 {
             &request.html_snapshot[..30000]

@@ -18,12 +18,20 @@ impl InvokerEngine {
         request: InvokerMarkerSuggestionRequest,
     ) -> Result<InvokerMarkerSuggestionResponse> {
         let client = create_openai_client(&self.config)?;
-        let agent = client
+        let mut builder = client
             .agent(&self.config.model)
             .preamble(
                 "You are an expert web security payload marker insertion tool for security scanners. Analyze the raw HTTP request and insert marker symbols ($target$) around injection points for security testing.",
-            )
-            .build();
+            );
+
+        if let Some(temp) = self.config.temperature {
+            builder = builder.temperature(temp);
+        }
+        if let Some(tokens) = self.config.max_tokens {
+            builder = builder.max_tokens(tokens);
+        }
+
+        let agent = builder.build();
 
         let prompt = format!(
             "Analyze this raw HTTP request and identify high-value parameter injection points for fuzzing or vulnerability testing.\n\nRAW REQUEST:\n{}\n\nTarget Parameter (optional): {:?}\n\nReturn JSON output matching exact format:\n{{\n  \"marked_request\": \"...\",\n  \"parameters\": [\"...\"],\n  \"explanation\": \"...\"\n}}",
@@ -35,7 +43,6 @@ impl InvokerEngine {
             .await
             .map_err(|e| AiError::CompletionError(e.to_string()))?;
 
-        // Extract JSON if wrapped in markdown code blocks
         let clean_json = if response.contains("```json") {
             response
                 .split("```json")

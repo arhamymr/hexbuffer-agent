@@ -1,22 +1,34 @@
 use crate::config::AiConfig;
 use crate::error::{AiError, Result};
+use crate::policy::SecurityApprovalPolicy;
 use crate::providers::create_openai_client;
-use crate::tools::{
-    CreateCollectionTool, CreateEndpointTool, CreateFolderTool, RunTerminalCommandTool,
-    SendToRepeaterTool, StartInvokerAttackTool, ToggleInterceptTool, TriggerScanTool,
-    WriteDocumentTool,
-};
-use crate::types::{AiChatChunk, AiChatRequest};
+use crate::types::{AiChatChunk, AiChatRequest, AiChatResponse};
 use rig::completion::Prompt;
 use tokio::sync::mpsc;
 
 pub struct ChatEngine {
     config: AiConfig,
+    policy: SecurityApprovalPolicy,
 }
 
 impl ChatEngine {
     pub fn new(config: AiConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            policy: SecurityApprovalPolicy::default_policy(),
+        }
+    }
+
+    pub fn with_policy(config: AiConfig, policy: SecurityApprovalPolicy) -> Self {
+        Self { config, policy }
+    }
+
+    pub fn policy(&self) -> &SecurityApprovalPolicy {
+        &self.policy
+    }
+
+    pub fn policy_mut(&mut self) -> &mut SecurityApprovalPolicy {
+        &mut self.policy
     }
 
     pub async fn send_chat(&self, request: AiChatRequest) -> Result<String> {
@@ -24,7 +36,7 @@ impl ChatEngine {
         let mut builder = client
             .agent(&self.config.model)
             .preamble(
-                "You are hexbuffer AI, an advanced security research & web penetration testing assistant embedded inside apprecon. Provide concise, expert, and actionable security insights. Use the provided tools whenever appropriate to assist the user with application functionality. After calling any tool, ALWAYS summarize the action taken clearly and concisely in natural language to the user. Never reply with raw JSON objects or raw tool result strings."
+                "You are HexBuffer Agent, an advanced security research & web penetration testing reasoning engine. Provide concise, expert, and actionable security insights. Use the provided tools whenever appropriate to assist the user with application functionality. After calling any tool, ALWAYS summarize the action taken clearly and concisely in natural language to the user. Never reply with raw JSON objects or raw tool result strings."
             );
 
         if let Some(temp) = self.config.temperature {
@@ -44,34 +56,22 @@ impl ChatEngine {
         }
         full_prompt.push_str(&format!("user: {}\n", request.prompt));
 
-        let enable_tools = request.enable_tools.unwrap_or(true);
-        let response = if enable_tools {
-            let agent = builder
-                .tool(SendToRepeaterTool)
-                .tool(CreateCollectionTool)
-                .tool(CreateFolderTool)
-                .tool(CreateEndpointTool)
-                .tool(StartInvokerAttackTool)
-                .tool(ToggleInterceptTool)
-                .tool(TriggerScanTool)
-                .tool(RunTerminalCommandTool)
-                .tool(WriteDocumentTool)
-                .build();
+        let agent = builder.build();
 
-            agent
-                .prompt(&full_prompt)
-                .await
-                .map_err(|e| AiError::CompletionError(e.to_string()))?
-        } else {
-            let agent = builder.build();
-
-            agent
-                .prompt(&full_prompt)
-                .await
-                .map_err(|e| AiError::CompletionError(e.to_string()))?
-        };
+        let response = agent
+            .prompt(&full_prompt)
+            .await
+            .map_err(|e| AiError::CompletionError(e.to_string()))?;
 
         Ok(response)
+    }
+
+    pub async fn send_chat_response(&self, request: AiChatRequest) -> Result<AiChatResponse> {
+        let text = self.send_chat(request).await?;
+        Ok(AiChatResponse {
+            text: Some(text),
+            tool_calls: None,
+        })
     }
 
     pub async fn send_chat_stream(

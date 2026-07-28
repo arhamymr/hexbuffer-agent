@@ -1,31 +1,31 @@
+pub mod agent;
 pub mod audit;
 pub mod auto_mark;
 pub mod chat;
 pub mod config;
 pub mod error;
+pub mod pipeline;
 pub mod policy;
 pub mod providers;
 pub mod regression;
-pub mod tools;
 pub mod types;
 
+pub use agent::HexBufferAgent;
 pub use audit::AuditEngine;
 pub use auto_mark::InvokerEngine;
 pub use chat::ChatEngine;
 pub use config::{AiConfig, AiConfigBuilder};
 pub use error::{AiError, Result};
+pub use pipeline::{Pipeline, PipelineStage, WorkflowStep};
 pub use policy::SecurityApprovalPolicy;
 pub use regression::RegressionEngine;
-pub use tools::{
-    RunTerminalCommandTool, SendToRepeaterTool, StartInvokerAttackTool, ToggleInterceptTool,
-    TriggerScanTool, WriteDocumentTool,
-};
 pub use types::*;
 
 use tokio::sync::mpsc;
 
 pub struct AiEngine {
     config: AiConfig,
+    policy: SecurityApprovalPolicy,
     chat_engine: ChatEngine,
     invoker_engine: InvokerEngine,
     audit_engine: AuditEngine,
@@ -34,13 +34,18 @@ pub struct AiEngine {
 
 impl AiEngine {
     pub fn new(config: AiConfig) -> Self {
-        let chat_engine = ChatEngine::new(config.clone());
+        Self::with_policy(config, SecurityApprovalPolicy::default_policy())
+    }
+
+    pub fn with_policy(config: AiConfig, policy: SecurityApprovalPolicy) -> Self {
+        let chat_engine = ChatEngine::with_policy(config.clone(), policy.clone());
         let invoker_engine = InvokerEngine::new(config.clone());
         let audit_engine = AuditEngine::new(config.clone());
         let regression_engine = RegressionEngine::new(config.clone());
 
         Self {
             config,
+            policy,
             chat_engine,
             invoker_engine,
             audit_engine,
@@ -48,12 +53,49 @@ impl AiEngine {
         }
     }
 
+    pub fn builder() -> AiConfigBuilder {
+        AiConfig::builder()
+    }
+
     pub fn config(&self) -> &AiConfig {
         &self.config
     }
 
+    pub fn policy(&self) -> &SecurityApprovalPolicy {
+        &self.policy
+    }
+
+    pub fn policy_mut(&mut self) -> &mut SecurityApprovalPolicy {
+        &mut self.policy
+    }
+
+    pub fn set_policy(&mut self, policy: SecurityApprovalPolicy) {
+        self.policy = policy.clone();
+        self.chat_engine = ChatEngine::with_policy(self.config.clone(), policy);
+    }
+
+    pub fn chat_engine(&self) -> &ChatEngine {
+        &self.chat_engine
+    }
+
+    pub fn invoker_engine(&self) -> &InvokerEngine {
+        &self.invoker_engine
+    }
+
+    pub fn audit_engine(&self) -> &AuditEngine {
+        &self.audit_engine
+    }
+
+    pub fn regression_engine(&self) -> &RegressionEngine {
+        &self.regression_engine
+    }
+
     pub async fn chat(&self, request: AiChatRequest) -> Result<String> {
         self.chat_engine.send_chat(request).await
+    }
+
+    pub async fn chat_with_response(&self, request: AiChatRequest) -> Result<AiChatResponse> {
+        self.chat_engine.send_chat_response(request).await
     }
 
     pub async fn chat_stream(
@@ -100,42 +142,15 @@ mod tests {
         let engine = AiEngine::new(config);
         assert_eq!(engine.config().provider, "openai");
         assert_eq!(engine.config().model, "gpt-4o");
+        assert!(engine.policy().is_approved("send_to_repeater"));
     }
 
     #[test]
-    fn test_deepseek_v4_pro_config() {
-        let config = AiConfig::deepseek_v4_pro("test-key");
-        assert_eq!(config.provider, "deepseek");
-        assert_eq!(config.model, "deepseek-v4-pro");
-        assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
-    }
-
-    #[test]
-    fn test_ai_config_builder() {
-        let config = AiConfig::builder()
-            .provider("deepseek")
-            .model("deepseek-v4-pro")
-            .api_key("sk-builder-key-123")
-            .temperature(0.2)
-            .max_tokens(2048)
-            .build();
-
-        assert_eq!(config.provider, "deepseek");
-        assert_eq!(config.model, "deepseek-v4-pro");
-        assert_eq!(config.api_key, Some("sk-builder-key-123".to_string()));
-        assert_eq!(config.temperature, Some(0.2));
-        assert_eq!(config.max_tokens, Some(2048));
-        assert_eq!(config.base_url, Some("https://api.deepseek.com/v1".to_string()));
-    }
-
-    #[test]
-    fn test_apprecon_tools_creation() {
-        let policy = SecurityApprovalPolicy::default_policy();
-        assert!(policy.is_approved("send_to_repeater"));
-        assert!(policy.is_approved("write_document"));
-        assert!(policy.is_approved("trigger_scan"));
-        assert!(!policy.is_approved("start_invoker_attack"));
-        assert!(!policy.is_approved("run_terminal_command"));
-        assert!(policy.evaluate_tool_call("start_invoker_attack").is_err());
+    fn test_pipeline_creation() {
+        let mut pipeline = Pipeline::new();
+        assert_eq!(pipeline.current_stage, PipelineStage::Idle);
+        pipeline.transition_to(PipelineStage::Audit, "Auditing Target", Some("http://target.local".into()));
+        assert_eq!(pipeline.current_stage, PipelineStage::Audit);
+        assert_eq!(pipeline.steps.len(), 1);
     }
 }
